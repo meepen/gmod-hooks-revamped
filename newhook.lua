@@ -141,7 +141,9 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
 
         local fn_table = internal_event[1 --[[i_fn_table]]]
         local id_table = internal_event[2 --[[i_id_table]]]
+        local offset = 0
         for i = 1, internal_event[3 --[[i_count]]] do
+            i = i + offset
             local id = id_table[i]
             if (not id) then
                 local a, b, c, d, e, f = fn_table[i](...)
@@ -159,6 +161,7 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
             end
 
             Remove(event, id)
+            offset = offset - 1
         end
     end
 
