@@ -137,8 +137,6 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
     local internal_event = internal_representation[event]
 
     if (internal_event) then
-        -- TODO: return support
-
         local fn_table = internal_event[1 --[[i_fn_table]]]
         local id_table = internal_event[2 --[[i_id_table]]]
         local offset = 0
