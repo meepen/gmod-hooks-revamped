@@ -113,6 +113,7 @@ local function Add(event, name, fn)
             id_table[i] = internal_event[2 --[[i_id_table]]][i]
         end
         fn_table[count + 1] = fn
+        id_table[count + 1] = type(name) ~= "string" and name or nil
         internal_event[1 --[[i_fn_table]]] = fn_table
         internal_event[2 --[[i_id_table]]] = id_table
         internal_event[3 --[[i_count]]   ] = count + 1
@@ -149,13 +150,13 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
                 end
                 continue -- this is faster, trust me
             end
-			if (IsValid(id)) then
+            if (IsValid(id)) then
                 local a, b, c, d, e, f = fn_table[i](id, ...)
                 if (a ~= nil) then
                     return a, b, c, d, e, f
                 end
-				continue
-			end
+                continue
+            end
 
             Remove(event, id)
         end
@@ -175,7 +176,7 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
 end
 
 local function Run(event, ...)
-	return Call(event, gmod and gmod.GetGamemode() or nil, ...)
+    return Call(event, gmod and gmod.GetGamemode() or nil, ...)
 end
 
 return {
@@ -183,5 +184,5 @@ return {
     GetTable = GetTable,
     Add = Add,
     Call = Call,
-	Run = Run
+    Run = Run
 }
