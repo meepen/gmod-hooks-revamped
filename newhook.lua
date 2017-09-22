@@ -68,10 +68,10 @@ local function Remove(event, name)
 end
 
 local function Add(event, name, fn)
-    if (not event) then
+    if (event == nil) then
         assert(false, "bad argument #1 to 'Add' (value expected)")
     end
-    if (not name) then
+    if (name == nil) then
         assert(false, "bad argument #2 to 'Add' (value expected)")
     end
 
@@ -93,11 +93,12 @@ local function Add(event, name, fn)
 
     -- internal table update
     local internal_event = internal_representation[event]
+    local new_id = type(name) ~= "string" and name or nil
     if (old_fn) then
         -- replace the old function with the new, if multiple hooks with same function it won't matter
         local fn_table = internal_event[1 --[[i_fn_table]]]
         for i = 1, #fn_table do
-            if (fn_table[i] == old_fn) then
+            if (fn_table[i] == old_fn and new_id == id_table[i]) then
                 fn_table[i] = fn
                 break
             end
@@ -113,7 +114,7 @@ local function Add(event, name, fn)
             id_table[i] = internal_event[2 --[[i_id_table]]][i]
         end
         fn_table[count + 1] = fn
-        id_table[count + 1] = type(name) ~= "string" and name or nil
+        id_table[count + 1] = new_id
         internal_event[1 --[[i_fn_table]]] = fn_table
         internal_event[2 --[[i_id_table]]] = id_table
         internal_event[3 --[[i_count]]   ] = count + 1
@@ -128,7 +129,7 @@ local function Add(event, name, fn)
             1
         }
         -- set to 
-        internal_event[2 --[[ i_id_table ]]][1] = type(name) ~= "string" and name or nil
+        internal_event[2 --[[ i_id_table ]]][1] = new_id
         internal_representation[event] = internal_event
     end
 end
