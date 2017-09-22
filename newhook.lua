@@ -40,6 +40,7 @@ local function Remove(event, name)
     
     external_event[name] = nil
 
+    name = type(name) ~= "string" and name or nil
     local internal_event = internal_representation[event]
 
     local fn_table = internal_event[1 --[[i_fn_table]]]
@@ -47,7 +48,7 @@ local function Remove(event, name)
     local count    = internal_event[3 --[[i_count]]   ]
     for fn_index = 1, count do
         local ind_fn = fn_table[fn_index]
-        if (ind_fn == fn) then
+        if (ind_fn == fn and id_table[fn_index] == name) then
             if (count == 1) then
                 internal_representation[event] = nil
                 return
