@@ -1,5 +1,6 @@
-local hook = {}
-
+if (SERVER) then
+    AddCSLuaFile()
+end
 
 local function loadtable(size)
     local t = CompileString("return {"..("nil,"):rep(size - 1).."1}", "loadtable")()
@@ -20,14 +21,13 @@ local internal_representation = {--[[
         [i_count]    = iter_count
     }
 ]]}
-local external_representation = setmetatable({}, {__newindex = {}})
+local external_representation = {}
 
 local function GetTable()
     return external_representation
 end
 
 local function Remove(event, name)
-
     local external_event = external_representation[event]
     if (not external_event) then
         return
@@ -68,7 +68,6 @@ local function Remove(event, name)
 end
 
 local function Add(event, name, fn)
-
     if (not event) then
         assert(false, "bad argument #1 to 'Add' (value expected)")
     end
@@ -86,12 +85,10 @@ local function Add(event, name, fn)
     local external_event = external_representation[event]
     if (not external_event) then
         external_event = {}
-        rawset(external_representation, event, setmetatable({}, {
-            __newindex = {}
-        }))
+        external_representation[event] = external_event
     end
     local old_fn = external_representation[event][name]
-    rawset(external_representation[event], name, fn)
+    external_representation[event][name] = fn
     
 
     -- internal table update
@@ -136,7 +133,6 @@ local function Add(event, name, fn)
 end
 
 local function Call(event, gm, ...) -- as long as we pass these through select or directly to the end of a function everything will be ok
-
     local internal_event = internal_representation[event]
 
     if (internal_event) then
@@ -146,13 +142,21 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
         local id_table = internal_event[2 --[[i_id_table]]]
         for i = 1, internal_event[3 --[[i_count]]] do
             local id = id_table[i]
-            if (not id or IsValid(id)) then
+            if (not id) then
                 local a, b, c, d, e, f = fn_table[i](...)
                 if (a ~= nil) then
                     return a, b, c, d, e, f
                 end
                 continue -- this is faster, trust me
             end
+			if (IsValid(id)) then
+                local a, b, c, d, e, f = fn_table[i](id, ...)
+                if (a ~= nil) then
+                    return a, b, c, d, e, f
+                end
+				continue
+			end
+
             Remove(event, id)
         end
     end
@@ -170,9 +174,14 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
 
 end
 
+local function Run(event, ...)
+	return Call(event, gmod and gmod.GetGamemode() or nil, ...)
+end
+
 return {
     Remove = Remove,
     GetTable = GetTable,
     Add = Add,
-    Call = Call
+    Call = Call,
+	Run = Run
 }
