@@ -68,12 +68,8 @@ local function Remove(event, name)
 end
 
 local function Add(event, name, fn)
-    if (event == nil) then
-        assert(false, "bad argument #1 to 'Add' (value expected)")
-    end
-    if (name == nil) then
-        assert(false, "bad argument #2 to 'Add' (value expected)")
-    end
+    assert(event ~= nil, "bad argument #1 to 'Add' (value expected)")
+    assert(name ~= nil, "bad argument #2 to 'Add' (value expected)")
 
     if (not fn) then
         Remove(event, name)
