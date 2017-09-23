@@ -94,6 +94,7 @@ local function Add(event, name, fn)
     if (old_fn) then
         -- replace the old function with the new, if multiple hooks with same function it won't matter
         local fn_table = internal_event[1 --[[i_fn_table]]]
+        local id_table = internal_event[2 --[[i_id_table]]]
         for i = 1, #fn_table do
             if (fn_table[i] == old_fn and new_id == id_table[i]) then
                 fn_table[i] = fn
