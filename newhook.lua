@@ -12,6 +12,7 @@ do -- do not use these, just for identification
     local i_fn_table = 1
     local i_id_table = 2
     local i_count    = 3
+    local i_start    = 4
 end
 
 local internal_representation = {--[[
@@ -46,7 +47,8 @@ local function Remove(event, name)
     local fn_table = internal_event[1 --[[i_fn_table]]]
     local id_table = internal_event[2 --[[i_id_table]]]
     local count    = internal_event[3 --[[i_count]]   ]
-    for fn_index = 1, count do
+    local start    = internal_event[4 --[[i_start]]   ]
+    for fn_index = start, count do
         local ind_fn = fn_table[fn_index]
         if (ind_fn == fn and id_table[fn_index] == name) then
             if (count == 1) then
@@ -57,14 +59,15 @@ local function Remove(event, name)
             fn_table[fn_index] = nil
             id_table[fn_index] = nil
 
-            for index = fn_index + 1, count do
-                fn_table[index - 1] = fn_table[index]
-                id_table[index - 1] = id_table[index]
+            for index = start, fn_index - 1 do
+                fn_table[index + 1] = fn_table[index]
+                id_table[index + 1] = id_table[index]
             end
-            internal_event[3 --[[i_count]]] = count - 1
+            internal_event[4 --[[i_start]]] = start + 1
             break
         end
     end
+
 
 end
 
@@ -95,7 +98,7 @@ local function Add(event, name, fn)
         -- replace the old function with the new, if multiple hooks with same function it won't matter
         local fn_table = internal_event[1 --[[i_fn_table]]]
         local id_table = internal_event[2 --[[i_id_table]]]
-        for i = 1, #fn_table do
+        for i = internal_event[4 --[[i_start]]], #fn_table do
             if (fn_table[i] == old_fn and new_id == id_table[i]) then
                 fn_table[i] = fn
                 break
@@ -105,11 +108,13 @@ local function Add(event, name, fn)
         -- update
 
         local count = internal_event[3 --[[i_count]]]
+        local start = internal_event[4 --[[i_start]]]
         local fn_table = loadtable(count + 1)
         local id_table = loadtable(count + 1)
-        for i = 1, count do
-            fn_table[i] = internal_event[1 --[[i_fn_table]]][i]
-            id_table[i] = internal_event[2 --[[i_id_table]]][i]
+        for i = start, count do
+            local start_minus_one = start - 1
+            fn_table[i - start_minus_one] = internal_event[1 --[[i_fn_table]]][i]
+            id_table[i - start_minus_one] = internal_event[2 --[[i_id_table]]][i]
         end
         fn_table[count + 1] = fn
         id_table[count + 1] = new_id
@@ -124,6 +129,8 @@ local function Add(event, name, fn)
             -- i_id_table
             { 1 }, -- we update this later
             -- i_count
+            1,
+            -- i_start
             1
         }
         -- set to 
@@ -138,9 +145,7 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
     if (internal_event) then
         local fn_table = internal_event[1 --[[i_fn_table]]]
         local id_table = internal_event[2 --[[i_id_table]]]
-        local offset = 0
-        for i = 1, internal_event[3 --[[i_count]]] do
-            i = i + offset
+        for i = internal_event[4 --[[i_start]]], internal_event[3 --[[i_count]]] do
             local id = id_table[i]
             if (not id) then
                 local a, b, c, d, e, f = fn_table[i](...)
@@ -158,7 +163,6 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
             end
 
             Remove(event, id)
-            offset = offset - 1
         end
     end
 
@@ -172,7 +176,6 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
     end
 
     return fn(gm, ...)
-
 end
 
 local function Run(event, ...)
