@@ -107,17 +107,31 @@ return {
         assert(call_count == 2, "Call count not sane after calling IsValid")
 
         hook.Add(HOOK_ID, HOOK_ID)
-        assert(hook.GetTable()[HOOK_ID][HOOK_ID] == nil, "Removed table instead")
+        assert(hook.GetTable()[HOOK_ID][HOOK_ID], "Removed instead of returning")
         call_count = 0
         hook.Call(HOOK_ID)
-        assert(call_count == 1, "Call count not sane after calling IsValid and removing original")
+        assert(call_count == 2, "Wrong call count after add with nil function")
 
-        hook.Add(HOOK_ID, t)
+        hook.Remove(HOOK_ID, HOOK_ID)
         call_count = 0
         hook.Call(HOOK_ID)
-        assert(call_count == 0, "Call count not zero")
+        assert(call_count == 1, "Call count not one")
 
         return 1, nil, true
+    end,
+    AbortTests = function()
+        jit.attach(function(what, tr, fn) 
+            if (what == "abort") then
+                print("ABORT")
+                PrintTable(debug.getinfo(2))
+            end
+        end, "trace")
+        local HOOK_ID = "VERIFY_HOOK"
+        hook.Add(HOOK_ID, HOOK_ID, function() end)
+        hook.Add(HOOK_ID, {IsValid = function() return true end}, function() end)
+        hook.Add(HOOK_ID, {IsValid = function() return false end}, function() end)
+        hook.Call(HOOK_ID)
+        jit.attach(function() end, "trace")
     end,
     All = function(self, lib)
         for i = 1, #hooks do

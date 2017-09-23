@@ -73,7 +73,9 @@ end
 
 local function Add(event, name, fn)
     assert(event ~= nil, "bad argument #1 to 'Add' (value expected)")
-    assert(name ~= nil, "bad argument #2 to 'Add' (value expected)")
+    if (not name or not fn) then
+        return
+    end
 
     if (not fn) then
         Remove(event, name)
@@ -121,6 +123,7 @@ local function Add(event, name, fn)
         internal_event[1 --[[i_fn_table]]] = fn_table
         internal_event[2 --[[i_id_table]]] = id_table
         internal_event[3 --[[i_count]]   ] = count + 1
+        internal_event[4 --[[i_start]]   ] = 1
     else 
         -- create
         internal_event = {
