@@ -147,16 +147,16 @@ return {
         hook.Call(HOOK_ID)
         assert(call_count == 0, "Call count not zero")
 
-        --[[call_count = 0
+        call_count = 0
         hook.Add(HOOK_ID, HOOK_ID, add)
 
         hook.Add(HOOK_ID, {IsValid = function() return false end}, add)
         hook.Add(HOOK_ID, {IsValid = function() return true end}, add)
         hook.Call(HOOK_ID)
 
-        assert(call_count == 2, "Call count not two after adding isvalids "..call_count)]]
+        assert(call_count == 2, "Call count not two after adding isvalids "..call_count)
 
-        return 1, nil, true
+        return 0, 1, true
     end,
     All = function(self, lib)
         for i = 1, #hooks do
