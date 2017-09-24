@@ -41,44 +41,36 @@ local function Remove(event, name)
     
     external_event[name] = nil
 
-    name = type(name) ~= "string" and name or nil
+    local new_id = type(name) ~= "string" and name or nil
     local internal_event = internal_representation[event]
 
     local fn_table = internal_event[1 --[[i_fn_table]]]
     local id_table = internal_event[2 --[[i_id_table]]]
     local count    = internal_event[3 --[[i_count]]   ]
     local start    = internal_event[4 --[[i_start]]   ]
-    for fn_index = start, count do
-        local ind_fn = fn_table[fn_index]
-        if (ind_fn == fn and id_table[fn_index] == name) then
-            if (count == 1) then
-                internal_representation[event] = nil
-                return
-            end
-            -- remove if last 
-            fn_table[fn_index] = nil
-            id_table[fn_index] = nil
 
-            for index = start, fn_index - 1 do
-                fn_table[index + 1] = fn_table[index]
-                id_table[index + 1] = id_table[index]
-            end
-            internal_event[4 --[[i_start]]] = start + 1
-            break
-        end
+    if (count == start) then
+        internal_representation[event] = nil
+        return
     end
 
+    local found = false
+    internal_event[4 --[[i_start]]] = start + 1
 
+    for fn_index = count, start, -1 do
+        if (fn_table[fn_index] == fn and (not new_id or id_table[fn_index] == new_id)) then
+            found = true
+        end
+        if (found) then
+            fn_table[fn_index] = fn_table[fn_index - 1]
+            id_table[fn_index] = id_table[fn_index - 1]
+        end
+    end
 end
 
 local function Add(event, name, fn)
     assert(event ~= nil, "bad argument #1 to 'Add' (value expected)")
     if (not name or not fn) then
-        return
-    end
-
-    if (not fn) then
-        Remove(event, name)
         return
     end
 
@@ -89,13 +81,27 @@ local function Add(event, name, fn)
         external_event = {}
         external_representation[event] = external_event
     end
-    local old_fn = external_representation[event][name]
-    external_representation[event][name] = fn
+    local old_fn = external_event[name]
+    external_event[name] = fn
     
-
     -- internal table update
     local internal_event = internal_representation[event]
     local new_id = type(name) ~= "string" and name or nil
+    if (new_id) then
+        local real_fn = fn
+        fn = function(...)
+            if (IsValid(new_id)) then
+                local a, b, c, d, e, f = real_fn(new_id, ...)
+                if (a ~= nil) then
+                    return a, b, c, d, e, f
+                end
+                return
+            end
+
+            Remove(event, new_id)
+        end
+    end
+
     if (old_fn) then
         -- replace the old function with the new, if multiple hooks with same function it won't matter
         local fn_table = internal_event[1 --[[i_fn_table]]]
@@ -111,18 +117,21 @@ local function Add(event, name, fn)
 
         local count = internal_event[3 --[[i_count]]]
         local start = internal_event[4 --[[i_start]]]
-        local fn_table = loadtable(count + 1)
-        local id_table = loadtable(count + 1)
+
+        local new_size = count - start + 2
+
+        local fn_table = loadtable(new_size)
+        local id_table = loadtable(new_size)
         for i = start, count do
             local start_minus_one = start - 1
             fn_table[i - start_minus_one] = internal_event[1 --[[i_fn_table]]][i]
             id_table[i - start_minus_one] = internal_event[2 --[[i_id_table]]][i]
         end
-        fn_table[count + 1] = fn
-        id_table[count + 1] = new_id
+        fn_table[new_size] = fn
+        id_table[new_size] = new_id
         internal_event[1 --[[i_fn_table]]] = fn_table
         internal_event[2 --[[i_id_table]]] = id_table
-        internal_event[3 --[[i_count]]   ] = count + 1
+        internal_event[3 --[[i_count]]   ] = new_size
         internal_event[4 --[[i_start]]   ] = 1
     else 
         -- create
@@ -147,25 +156,11 @@ local function Call(event, gm, ...) -- as long as we pass these through select o
 
     if (internal_event) then
         local fn_table = internal_event[1 --[[i_fn_table]]]
-        local id_table = internal_event[2 --[[i_id_table]]]
         for i = internal_event[4 --[[i_start]]], internal_event[3 --[[i_count]]] do
-            local id = id_table[i]
-            if (not id) then
-                local a, b, c, d, e, f = fn_table[i](...)
-                if (a ~= nil) then
-                    return a, b, c, d, e, f
-                end
-                continue -- this is faster, trust me
+            local a, b, c, d, e, f = fn_table[i](...)
+            if (a ~= nil) then
+                return a, b, c, d, e, f
             end
-            if (IsValid(id)) then
-                local a, b, c, d, e, f = fn_table[i](id, ...)
-                if (a ~= nil) then
-                    return a, b, c, d, e, f
-                end
-                continue
-            end
-
-            Remove(event, id)
         end
     end
 

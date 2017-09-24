@@ -117,21 +117,41 @@ return {
         hook.Call(HOOK_ID)
         assert(call_count == 1, "Call count not one")
 
+        hook.Remove(HOOK_ID, t)
+
+        call_count = 0
+        hook.Call(HOOK_ID)
+        assert(call_count == 0, "Call count not zero")
+
+        call_count = 0
+        hook.Add(HOOK_ID, HOOK_ID, add)
+
+        hook.Add(HOOK_ID, {IsValid = function() return true end}, add)
+        hook.Add(HOOK_ID, {IsValid = function() return false end}, add)
+        hook.Call(HOOK_ID)
+
+        assert(call_count == 2, "Call count not two after adding isvalids "..call_count)
+
         return 1, nil, true
     end,
-    AbortTests = function()
-        jit.attach(function(what, tr, fn) 
-            if (what == "abort") then
-                print("ABORT")
-                PrintTable(debug.getinfo(2))
+    AbortTests = function(hook)
+        local exits = {}
+        local inside = false
+        jit.attach(function(what, tr, fn)
+            if (inside) then
+                return
             end
-        end, "trace")
+            inside = true
+            exits[#exits + 1] = debug.getinfo(2)
+            inside = false
+        end, "texit")
         local HOOK_ID = "VERIFY_HOOK"
         hook.Add(HOOK_ID, HOOK_ID, function() end)
         hook.Add(HOOK_ID, {IsValid = function() return true end}, function() end)
         hook.Add(HOOK_ID, {IsValid = function() return false end}, function() end)
         hook.Call(HOOK_ID)
-        jit.attach(function() end, "trace")
+        jit.attach(function() end, "texit")
+        return nil, nil, exits
     end,
     All = function(self, lib)
         for i = 1, #hooks do
