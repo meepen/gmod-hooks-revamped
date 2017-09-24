@@ -4,7 +4,8 @@
 
 local hook_name = "HookSuite"
 local call_count         = 4000000
-local no_hook_call_count = 4000000
+local no_hook_call_count = 1000000000
+local invalid_call_count = 200000
 
 local hooks = {
     function()
@@ -73,6 +74,29 @@ return {
 
         return (end_time - start_time), no_hook_call_count
     end,
+    CallInvalid = function(lib)
+        local call, add = lib.Call, lib.Add
+        local bench_time, hook_name, invalid_call_count = SysTime, "NEVERUSETHISOK", invalid_call_count -- yes this is important
+        local t1, t2, t3 = 
+            {IsValid = function() return false end},
+            {IsValid = function() return false end},
+            {IsValid = function() return false end}
+        
+        local function nop() end
+
+        local start_time = bench_time()
+        
+        for i = 1, invalid_call_count do
+            add(hook_name, t1, nop)
+            add(hook_name, t2, nop)
+            add(hook_name, t3, nop)
+            call(hook_name, gm)
+        end
+        
+        local end_time = bench_time()
+        
+        return (end_time - start_time), invalid_call_count
+    end,
     Verify = function(hook)
         local HOOK_ID = "VERIFY_HOOK"
         
@@ -123,35 +147,16 @@ return {
         hook.Call(HOOK_ID)
         assert(call_count == 0, "Call count not zero")
 
-        call_count = 0
+        --[[call_count = 0
         hook.Add(HOOK_ID, HOOK_ID, add)
 
         hook.Add(HOOK_ID, {IsValid = function() return false end}, add)
         hook.Add(HOOK_ID, {IsValid = function() return true end}, add)
         hook.Call(HOOK_ID)
 
-        assert(call_count == 2, "Call count not two after adding isvalids "..call_count)
+        assert(call_count == 2, "Call count not two after adding isvalids "..call_count)]]
 
         return 1, nil, true
-    end,
-    AbortTests = function(hook)
-        local exits = {}
-        local inside = false
-        jit.attach(function(what, tr, fn)
-            if (inside) then
-                return
-            end
-            inside = true
-            exits[#exits + 1] = debug.getinfo(2)
-            inside = false
-        end, "texit")
-        local HOOK_ID = "VERIFY_HOOK"
-        hook.Add(HOOK_ID, HOOK_ID, function() end)
-        hook.Add(HOOK_ID, {IsValid = function() return true end}, function() end)
-        hook.Add(HOOK_ID, {IsValid = function() return false end}, function() end)
-        hook.Call(HOOK_ID)
-        jit.attach(function() end, "texit")
-        return nil, nil, exits
     end,
     All = function(self, lib)
         for i = 1, #hooks do
