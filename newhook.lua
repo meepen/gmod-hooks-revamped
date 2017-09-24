@@ -6,9 +6,8 @@ do
     local i_fn      = 1
     local i_id      = 2
     local i_next    = 3
-    local i_count   = 4
     local i_real_fn = 5
-    local i_last    = 6
+    local i_last    = 5
 end
 
 local event_table = {}
@@ -18,9 +17,11 @@ local function GetTable()
     local out = {}
     for event, hooklist in pairs(event_table) do
         out[event] = {}
-        for i = 1, hooklist[4 --[[i_count]]] do
-            out[event][hooklist[2 --[[i_id]]]] = hooklist[5 --[[i_real_fn]]]
+        ::startloop::
+            out[event][hooklist[2 --[[i_id]]]] = hooklist[4 --[[i_real_fn]]]
             hooklist = hooklist[3 --[[i_next]]] 
+        if (hooklist) then
+            goto startloop
         end
     end
     return out
@@ -40,21 +41,31 @@ local function Remove(event, name)
     local found = false
 
     local event_start = hook
-    for i = 1, hook[4 --[[i_count]]] do
+    ::startloop::
         if (hook[2 --[[i_id]]] == name) then
-            local last, next = hook[6 --[[i_last]]], hook[3 --[[i_next]]]
+        
+            if (hook == event_start) then
+                event_table[event] = nil
+            end
+
+            local last, next = hook[5 --[[i_last]]], hook[3 --[[i_next]]]
             if (last) then
                 last[3 --[[i_next]]] = hook[3 --[[i_next]]]
             end
             if (next) then
-                next[6 --[[i_last]]] = hook[6 --[[i_last]]]
+                next[5 --[[i_last]]] = hook[5 --[[i_last]]]
             end
             found = true
-            break
+            goto breakloop
         end
         hook = hook[3 --[[i_next]]]
+    if (hook) then
+        goto startloop
     end
+    ::breakloop::
     
+
+
     if (not found) then
         return
     end
@@ -63,8 +74,6 @@ local function Remove(event, name)
     if (not start) then
         return
     end
-
-    start[4 --[[i_count]]] = start[4 --[[i_count]]] - 1
 
 end
 local function Add(event, name, fn)
@@ -94,19 +103,22 @@ local function Add(event, name, fn)
     local found = false
 
     if (hook) then
-        for i = 1, hook[4 --[[i_count]]] do
+        ::startloop::
             if (hook[2 --[[i_id]]] == name) then
                 new_hook = hook
                 found = true
-                break
+                goto breakloop
             end
             hook = hook[3 --[[i_next]]]
+        if (hook) then
+            goto startloop
         end
     end
+    ::breakloop::
 
     if (found) then
         new_hook[1 --[[i_fn]]     ] = fn
-        new_hook[5 --[[i_real_fn]]] = real_fn
+        new_hook[4 --[[i_real_fn]]] = real_fn
     else
         new_hook = {
             -- i_fn
@@ -115,17 +127,14 @@ local function Add(event, name, fn)
             name,
             -- i_next
             event_start,
-            --i_count
-            1, 
             -- i_real_fn
             real_fn,
             -- i_last
             1
         }
-        new_hook[6 --[[i_last]]] = nil
+        new_hook[5 --[[i_last]]] = nil
         if (event_start) then
-            event_start[6 --[[i_last]]] = new_hook
-            new_hook[4 --[[i_count]]] = event_start[4 --[[i_count]]] + 1
+            event_start[5 --[[i_last]]] = new_hook
         end
         event_table[event] = new_hook
     end
@@ -137,13 +146,15 @@ local function Call(event, gm, ...)
     local hook = event_table[event]
 
     if (hook) then
-        for i = 1, hook[4 --[[i_count]]] do
+        ::startloop::
             local a, b, c, d, e, f = hook[1 --[[i_fn]]](...)
             if (a ~= nil) then
                 return a, b, c, d, e, f
             end
 
             hook = hook[3 --[[i_next]]]
+        if (hook) then
+            goto startloop
         end
     end
 
