@@ -6,6 +6,13 @@ local hook_name = "HookSuite"
 local call_count         = 2000000000
 local no_hook_call_count = 2000000000
 local invalid_call_count = 20000
+local slow = false
+
+if (slow) then
+    call_count = 8000000
+    no_hook_call_count = 200000000
+    invalid_call_count = 200
+end
 
 local hooks = {
     function()
@@ -82,16 +89,16 @@ return {
 
         local total_time = 0
         local invalid = {}
+        local valid = {}
         for i = 1, 25 do
             invalid[i] = {IsValid = function() return false end}
+            valid[i] = {IsValid = function() return true end}
         end
-        local valid = {IsValid = function() return true end}
 
         for i = 1, invalid_call_count do
-
             for i2 = 1, 25 do -- very extreme case
                 add(hook_name, invalid[i2], nop)
-                add(hook_name, valid, nop)
+                add(hook_name, valid[i2], nop)
             end
 
             local start_time = bench_time()
@@ -154,12 +161,12 @@ return {
         call_count = 0
         hook.Call(HOOK_ID)
         assert(call_count == 0, "Call count not zero")
-
+        
         call_count = 0
         hook.Add(HOOK_ID, HOOK_ID, add)
         t = {IsValid = function() return true end}
-        hook.Add(HOOK_ID, {IsValid = function() return false end}, add)
         hook.Add(HOOK_ID, t, add)
+        hook.Add(HOOK_ID, {IsValid = function() return false end}, add)
         hook.Call(HOOK_ID)
 
         assert(call_count == 2, "Call count not two after adding isvalids "..call_count)
@@ -170,6 +177,15 @@ return {
         hook.Add(HOOK_ID, t, add)
         hook.Call(HOOK_ID)
         assert(call_count == 1, "Call count not one after adding isvalids "..call_count)
+
+        call_count = 0
+        hook.Add(HOOK_ID, {IsValid = function() return false end}, add)
+        hook.Call(HOOK_ID)
+        assert(call_count == 1, "Call count not one after adding invalid at end "..call_count)
+        call_count = 0
+        hook.Call(HOOK_ID)
+        assert(call_count == 1, "Call count not one after removing invalid at end"..call_count)
+
 
         call_count = 0
         hook.Add(HOOK_ID, t, add)

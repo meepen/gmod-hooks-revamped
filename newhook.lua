@@ -3,17 +3,17 @@ if (SERVER and not MENU_DLL) then
 end
 
 do 
-    local i_fn      = 1
-    local i_id      = 2
-    local i_next    = 3
-    local i_real_fn = 5
-    local i_last    = 5
+    local i_fn       = 1
+    local i_id       = 2
+    local i_next     = 3
+    local i_real_fn  = 4
+    local i_last     = 5
+    local i_priority = 6
 end
 
 local event_table = {}
 
 local function GetTable()
-    -- TODO: implement better
     local out = {}
     for event, hooklist in pairs(event_table) do
         out[event] = {}
@@ -28,7 +28,6 @@ local function GetTable()
 end
 
 local function Remove(event, name)
-
     if (not name) then
         return
     end
@@ -64,8 +63,6 @@ local function Remove(event, name)
     end
     ::breakloop::
     
-
-
     if (not found) then
         return
     end
@@ -74,9 +71,9 @@ local function Remove(event, name)
     if (not start) then
         return
     end
-
 end
-local function Add(event, name, fn)
+
+local function Add(event, name, fn, priority)
     assert(event ~= nil, "bad argument #1 to 'Add' (value expected)")
     if (not name or not fn) then
         return
@@ -97,7 +94,6 @@ local function Add(event, name, fn)
     end
 
     local hook = event_table[event]
-    local event_start = hook
     
     local new_hook
     local found = false
@@ -116,9 +112,22 @@ local function Add(event, name, fn)
     end
     ::breakloop::
 
+    if (not priority) then
+        priority = 0
+    end
+
     if (found) then
         new_hook[1 --[[i_fn]]     ] = fn
         new_hook[4 --[[i_real_fn]]] = real_fn
+        if (new_hook[6 --[[i_priority]]] == priority) then
+            return
+        end
+        
+        -- WARNING: UNDEFINED BEHAVIOR WARNING doing this inside another hook with earlier priority than the hook running WILL run the hook again
+        Remove(event, name)
+        new_hook[6 --[[i_priority]]] = priority
+        new_hook[3 --[[i_next]]]     = nil
+        new_hook[5 --[[i_last]]]     = nil
     else
         new_hook = {
             -- i_fn
@@ -126,22 +135,52 @@ local function Add(event, name, fn)
             -- i_id
             name,
             -- i_next
-            event_start,
+            nil,
             -- i_real_fn
             real_fn,
             -- i_last
-            1
+            nil, 
+            -- i_priority
+            priority
         }
-        new_hook[5 --[[i_last]]] = nil
-        if (event_start) then
-            event_start[5 --[[i_last]]] = new_hook
-        end
-        event_table[event] = new_hook
     end
+
+    -- find link in hook list to add to
+
+    hook = event_table[event]
+    local event_start = hook
+
+    if (hook) then
+        local lasthook
+        ::startloop2::
+            if (hook[6 --[[i_priority]]] <= priority) then
+                if (lasthook) then
+                    lasthook[3 --[[i_next]]] = new_hook
+                end
+                hook[5 --[[i_last]]] = new_hook
+                new_hook[3 --[[i_next]]] = hook
+                new_hook[5 --[[i_last]]] = lasthook
+                if (event_start ~= hook) then
+                    return
+                end
+                goto breakloop2
+            end
+            lasthook = hook
+            hook = hook[3 --[[i_next]]]
+        if (hook) then
+            goto startloop2
+        else
+            -- NOT SUITABLE IN TABLE, update at end
+            lasthook[3 --[[i_next]]] = new_hook
+            return
+        end
+    end
+    ::breakloop2::
+
+    event_table[event] = new_hook
 end
 
 local function Call(event, gm, ...)
-
     -- TODO: hooks
     local hook = event_table[event]
 
@@ -166,6 +205,8 @@ local function Call(event, gm, ...)
     end
 end
 
+local gmod = gmod
+
 local function Run(event, ...)
     return Call(event, gmod and gmod.GetGamemode() or nil, ...)
 end
@@ -176,4 +217,7 @@ return {
     Add = Add,
     Call = Call,
     Run = Run
+    Priority = {
+        NO_RETURN = -math.huge -- not enforced, just should be followed
+    }
 }
