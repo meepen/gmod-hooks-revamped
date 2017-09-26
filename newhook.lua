@@ -216,7 +216,7 @@ return {
     GetTable = GetTable,
     Add = Add,
     Call = Call,
-    Run = Run
+    Run = Run,
     Priority = {
         NO_RETURN = math.huge -- not enforced, just should be followed
     }
