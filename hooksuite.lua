@@ -3,9 +3,9 @@
 -- add/remove are not super important but should be considered still
 
 local hook_name = "HookSuite"
-local call_count         = 4000000
-local no_hook_call_count = 1000000000
-local invalid_call_count = 200000
+local call_count         = 200000
+local no_hook_call_count = 200000
+local invalid_call_count = 20000
 
 local hooks = {
     function()
@@ -76,27 +76,35 @@ return {
     end,
     CallInvalid = function(lib)
         local call, add = lib.Call, lib.Add
-        local bench_time, hook_name, invalid_call_count = SysTime, "NEVERUSETHISOK", invalid_call_count -- yes this is important
-        local t1, t2, t3 = 
-            {IsValid = function() return false end},
-            {IsValid = function() return false end},
-            {IsValid = function() return false end}
-        
+        local bench_time, hook_name, invalid_call_count = SysTime, "NEVERUSETHISOKENTS", invalid_call_count -- yes this is important
+
         local function nop() end
 
-        local start_time = bench_time()
-        
-        for i = 1, invalid_call_count do
-            add(hook_name, t1, nop)
-            add(hook_name, t2, nop)
-            add(hook_name, t3, nop)
-            call(hook_name, gm)
+        local total_time = 0
+        local invalid = {}
+        for i = 1, 25 do
+            invalid[i] = {IsValid = function() return false end}
         end
-        
-        local end_time = bench_time()
-        
-        return (end_time - start_time), invalid_call_count
+        local valid = {IsValid = function() return true end}
+
+        for i = 1, invalid_call_count do
+
+            for i2 = 1, 25 do -- very extreme case
+                add(hook_name, invalid[i2], nop)
+                add(hook_name, valid, nop)
+            end
+
+            local start_time = bench_time()
+                call(hook_name)
+            local end_time = bench_time()
+
+            total_time = total_time + (end_time - start_time)
+        end
+
+        return total_time, invalid_call_count
     end,
+
+			
     Verify = function(hook)
         local HOOK_ID = "VERIFY_HOOK"
         
@@ -148,13 +156,29 @@ return {
         assert(call_count == 0, "Call count not zero")
 
         call_count = 0
-        hook.Add(HOOK_ID, HOOK_ID, add)
 
+        hook.Add(HOOK_ID, HOOK_ID, add)
+        t = {IsValid = function() return true end}
         hook.Add(HOOK_ID, {IsValid = function() return false end}, add)
-        hook.Add(HOOK_ID, {IsValid = function() return true end}, add)
+        hook.Add(HOOK_ID, t, add)
         hook.Call(HOOK_ID)
 
         assert(call_count == 2, "Call count not two after adding isvalids "..call_count)
+        
+        call_count = 0
+        hook.Remove(HOOK_ID, HOOK_ID)
+        hook.Add(HOOK_ID, {IsValid = function() return false end}, add)
+        hook.Add(HOOK_ID, t, add)
+        hook.Call(HOOK_ID)
+        assert(call_count == 1, "Call count not one after adding isvalids "..call_count)
+
+        call_count = 0
+        hook.Add(HOOK_ID, t, add)
+        hook.Add(HOOK_ID, HOOK_ID)
+        hook.Remove(HOOK_ID, HOOK_ID)
+        hook.Call(HOOK_ID)
+
+        assert(call_count == 1, "Call count not one after instantly removing "..call_count)
 
         return 0, 1, true
     end,
