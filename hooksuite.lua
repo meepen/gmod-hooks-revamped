@@ -3,8 +3,8 @@
 -- add/remove are not super important but should be considered still
 
 local hook_name = "HookSuite"
-local call_count         = 200000
-local no_hook_call_count = 200000
+local call_count         = 20000000
+local no_hook_call_count = 20000000
 local invalid_call_count = 20000
 
 local hooks = {
@@ -179,7 +179,6 @@ return {
         hook.Call(HOOK_ID)
 
         assert(call_count == 1, "Call count not one after instantly removing "..call_count)
-
         return 0, 1, true
     end,
     All = function(self, lib)

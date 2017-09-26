@@ -45,7 +45,7 @@ local function Remove(event, name)
         if (hook[2 --[[i_id]]] == name) then
         
             if (hook == event_start) then
-                event_table[event] = nil
+                event_table[event] = hook[3 --[[i_next]]]
             end
 
             local last, next = hook[5 --[[i_last]]], hook[3 --[[i_next]]]
@@ -158,16 +158,12 @@ local function Call(event, gm, ...)
         end
     end
 
-    if (not gm) then
-        return
+    if (gm) then
+        local fn = gm[event]
+        if (fn) then
+            return fn(gm, ...)
+        end
     end
-
-    local fn = gm[event]
-    if (not fn) then
-        return
-    end
-
-    return fn(gm, ...)
 end
 
 local function Run(event, ...)
