@@ -218,6 +218,6 @@ return {
     Call = Call,
     Run = Run
     Priority = {
-        NO_RETURN = -math.huge -- not enforced, just should be followed
+        NO_RETURN = math.huge -- not enforced, just should be followed
     }
 }
