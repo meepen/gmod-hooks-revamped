@@ -3,8 +3,8 @@
 -- add/remove are not super important but should be considered still
 
 local hook_name = "HookSuite"
-local call_count         = 20000000
-local no_hook_call_count = 20000000
+local call_count         = 2000000000
+local no_hook_call_count = 2000000000
 local invalid_call_count = 20000
 
 local hooks = {
@@ -156,7 +156,6 @@ return {
         assert(call_count == 0, "Call count not zero")
 
         call_count = 0
-
         hook.Add(HOOK_ID, HOOK_ID, add)
         t = {IsValid = function() return true end}
         hook.Add(HOOK_ID, {IsValid = function() return false end}, add)
@@ -196,6 +195,8 @@ return {
                 }
             end
         end
+        -- run verify again to make sure nothing broke while doing benches
+        self.Verify(lib)
         return rets
     end
 }
