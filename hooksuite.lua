@@ -6,10 +6,10 @@ local hook_name = "HookSuite"
 local call_count         = 2000000000
 local no_hook_call_count = 2000000000
 local invalid_call_count = 20000
-local slow = false
+local slow = true
 
 if (slow) then
-    call_count = 8000000
+    call_count = 32000000
     no_hook_call_count = 200000000
     invalid_call_count = 200
 end
