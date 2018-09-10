@@ -17,12 +17,10 @@ local function GetTable()
     local out = {}
     for event, hooklist in pairs(event_table) do
         out[event] = {}
-        ::startloop::
+        repeat
             out[event][hooklist[2 --[[i_id]]]] = hooklist[4 --[[i_real_fn]]]
             hooklist = hooklist[3 --[[i_next]]] 
-        if (hooklist) then
-            goto startloop
-        end
+        until not hooklist
     end
     return out
 end
@@ -40,7 +38,7 @@ local function Remove(event, name)
     local found = false
 
     local event_start = hook
-    ::startloop::
+    repeat
         if (hook[2 --[[i_id]]] == name) then
         
             if (hook == event_start) then
@@ -55,13 +53,10 @@ local function Remove(event, name)
                 next[5 --[[i_last]]] = hook[5 --[[i_last]]]
             end
             found = true
-            goto breakloop
+            break
         end
         hook = hook[3 --[[i_next]]]
-    if (hook) then
-        goto startloop
-    end
-    ::breakloop::
+    until not hook
     
     if (not found) then
         return
@@ -99,18 +94,15 @@ local function Add(event, name, fn, priority)
     local found = false
 
     if (hook) then
-        ::startloop::
+        repeat
             if (hook[2 --[[i_id]]] == name) then
                 new_hook = hook
                 found = true
-                goto breakloop
+                break
             end
             hook = hook[3 --[[i_next]]]
-        if (hook) then
-            goto startloop
-        end
+        until not hook
     end
-    ::breakloop::
 
     if (not priority) then
         priority = 0
@@ -152,7 +144,8 @@ local function Add(event, name, fn, priority)
 
     if (hook) then
         local lasthook
-        ::startloop2::
+        local exit = false
+        repeat
             if (hook[6 --[[i_priority]]] <= priority) then
                 if (lasthook) then
                     lasthook[3 --[[i_next]]] = new_hook
@@ -163,19 +156,19 @@ local function Add(event, name, fn, priority)
                 if (event_start ~= hook) then
                     return
                 end
-                goto breakloop2
+                exit = true
+                break
             end
             lasthook = hook
             hook = hook[3 --[[i_next]]]
-        if (hook) then
-            goto startloop2
-        else
+        until not hook
+        
+        if not exit and not hook then
             -- NOT SUITABLE IN TABLE, update at end
             lasthook[3 --[[i_next]]] = new_hook
             return
         end
     end
-    ::breakloop2::
 
     event_table[event] = new_hook
 end
@@ -185,16 +178,14 @@ local function Call(event, gm, ...)
     local hook = event_table[event]
 
     if (hook) then
-        ::startloop::
+        repeat
             local a, b, c, d, e, f = hook[1 --[[i_fn]]](...)
             if (a ~= nil) then
                 return a, b, c, d, e, f
             end
 
             hook = hook[3 --[[i_next]]]
-        if (hook) then
-            goto startloop
-        end
+        until not hook
     end
 
     if (gm) then
